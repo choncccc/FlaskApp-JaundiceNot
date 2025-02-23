@@ -1,1 +1,1 @@
-web: gunicorn app2-Histogram:app
+web: gunicorn app2-HistogramB:app
