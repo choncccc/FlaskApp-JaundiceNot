@@ -4,31 +4,22 @@ import numpy as np
 import cv2
 from PIL import Image
 from sklearn.cluster import KMeans
-from PIL import Image
 import io
 
 app = Flask(__name__)
 
+model = tf.keras.models.load_model("JaundiceNotBVals.keras")
 
-model = tf.keras.models.load_model("ModelHistogram.keras")  
-
-def extract_color_features(image, bins=10, lightness_scale=0.8):
-    image = np.array(image.convert("RGB")) 
+def extract_b_channel_features(image, bins=50):
+    image = np.array(image.convert("RGB"))
     lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     
-    lightness, a_channel, b_channel = lab_image[:, :, 0], lab_image[:, :, 1], lab_image[:, :, 2]
-    
-    lightness = (lightness / 255.0)
-    a_channel = (a_channel + 128) / 255.0 
-    b_channel = (b_channel + 128) / 255.0
-    
-    lightness_hist = np.histogram(lightness, bins=bins, range=(0, 1), density=True)[0]
-    a_hist = np.histogram(a_channel, bins=bins, range=(0, 1), density=True)[0]
+    b_channel = lab_image[:, :, 2]
+    b_channel = (b_channel - b_channel.min()) / (b_channel.max() - b_channel.min())
+
     b_hist = np.histogram(b_channel, bins=bins, range=(0, 1), density=True)[0]
-    
-    feature_vector = np.concatenate([lightness_hist, a_hist, b_hist])
-    
-    return feature_vector
+
+    return b_hist
 
 def compute_way_kmeans_lab(image, k=6):
     image = np.array(image.convert("RGB"))
@@ -50,16 +41,14 @@ def compute_way_kmeans_lab(image, k=6):
     WAY = np.dot(cluster_proportions, normalized_B_values)
     return WAY
 
-
 def classify_jaundice(WAY):
-    if 20 <= WAY <= 25:
+    if 20 <= WAY < 25:
         return "Onset/Mild Jaundice"
     elif 25 <= WAY < 35:
         return "Moderate Jaundice"
-    elif WAY > 35:
+    elif WAY >= 35:
         return "Severe Jaundice"
-    else:
-        return ""
+    return "Normal"
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -69,10 +58,10 @@ def predict():
     image_file = request.files['image']
     image = Image.open(io.BytesIO(image_file.read()))
 
-    features = extract_color_features(image, bins=10).reshape(1, -1)
+    features = extract_b_channel_features(image, bins=50).reshape(1, -1)
 
-    if features.shape[1] != 30:
-        return jsonify({'error': f'Invalid input shape. Expected 30, got {features.shape[1]}'}), 400
+    if features.shape[1] != 50:
+        return jsonify({'error': f'Invalid input shape. Expected 10, got {features.shape[1]}'}), 400
 
     prediction = model.predict(features)[0][0]
     print(prediction)
@@ -86,10 +75,8 @@ def predict():
         response_data["WAY"] = WAY
         response_data["severity"] = severity
 
-
     print(response_data)
     return jsonify(response_data)
-    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
