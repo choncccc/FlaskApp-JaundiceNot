@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 
 app = Flask(__name__)
 
-model = tf.keras.models.load_model("KmeansHistogramYellow.keras")  
+model = tf.keras.models.load_model("finalModelJaundiceNot.keras")  
 
 def extract_color_features(image, bins=10, lightness_scale=0.8):
     image = np.array(image.convert("RGB")) 
