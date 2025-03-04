@@ -10,9 +10,12 @@ app = Flask(__name__)
 
 model = tf.keras.models.load_model("KmeansHistogramYellow.keras")  
 
-def extract_yellow_histogram_features(image, bins=10, visualize=False):
-    lab_image = cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_RGB2LAB)
+def extract_yellow_histogram_features(image, bins=10):
+    image = np.array(image.convert("RGB"))
+
+    lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     L, A, B = lab_image[:, :, 0], lab_image[:, :, 1], lab_image[:, :, 2]
+
     L_valid, A_valid, B_valid = L.flatten(), A.flatten(), B.flatten()
 
     if L_valid.size == 0:
@@ -25,6 +28,7 @@ def extract_yellow_histogram_features(image, bins=10, visualize=False):
     feature_vector = np.concatenate([L_hist, A_hist, B_hist])
 
     return feature_vector
+
 
 def compute_way_kmeans_lab(image, k=6):
     image = np.array(image.convert("RGB"))
