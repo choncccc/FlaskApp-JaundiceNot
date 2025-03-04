@@ -82,7 +82,8 @@ def predict():
         severity = classify_jaundice(WAY)
         response_data["WAY"] = WAY
         response_data["severity"] = severity
-        
+    
+    print(response_data)
     return jsonify(response_data)
 
 if __name__ == '__main__':
