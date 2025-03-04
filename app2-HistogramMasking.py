@@ -11,7 +11,7 @@ app = Flask(__name__)
 model = tf.keras.models.load_model("finalModelJaundiceNot.keras")  
 
 def extract_yellow_histogram_features(image, bins=10):
-    image = np.array(image)  # Convert PIL image to NumPy array
+    image = np.array(image) 
     lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     
     L, A, B = lab_image[:, :, 0], lab_image[:, :, 1], lab_image[:, :, 2]
@@ -80,7 +80,8 @@ def predict():
         severity = classify_jaundice(WAY)
         response_data["WAY"] = WAY
         response_data["severity"] = severity
-        
+    
+    print(response_data)
     return jsonify(response_data)
 
 if __name__ == '__main__':
