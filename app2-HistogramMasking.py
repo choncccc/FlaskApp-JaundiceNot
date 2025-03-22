@@ -10,13 +10,21 @@ app = Flask(__name__)
 
 model = tf.keras.models.load_model("finalModelJaundiceNot.keras")  
 
-def extract_yellow_histogram_features(image, bins=10):
-    image = np.array(image) 
+import numpy as np
+import cv2
+
+def extract_yellow_histogram_features(image, bins=10, b_percentile=50, l_percentile=30, l_dark_threshold=20):
+    image = np.array(image)
     lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
-    
+
     L, A, B = lab_image[:, :, 0], lab_image[:, :, 1], lab_image[:, :, 2]
 
-    yellow_mask = B > np.percentile(B, 45)
+    B_thresh = np.percentile(B, b_percentile)
+    L_bright_thresh = np.percentile(L, l_percentile)
+    L_dark_thresh = np.percentile(L, l_dark_threshold)
+
+    yellow_mask = (B > B_thresh) & ((L > L_bright_thresh) | (L < L_dark_thresh))
+    
     L_valid, A_valid, B_valid = L[yellow_mask], A[yellow_mask], B[yellow_mask]
 
     if L_valid.size == 0:
@@ -28,6 +36,7 @@ def extract_yellow_histogram_features(image, bins=10):
 
     feature_vector = np.concatenate([L_hist, A_hist, B_hist])
     return feature_vector
+
 
 def compute_way_kmeans_lab(image, k=6):
     image = np.array(image.convert("RGB"))
