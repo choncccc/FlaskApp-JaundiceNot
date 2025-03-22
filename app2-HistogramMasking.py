@@ -38,23 +38,43 @@ def extract_yellow_histogram_features(image, bins=10, b_percentile=50, l_percent
     return feature_vector
 
 
-def compute_way_kmeans_lab(image, k=6):
+import numpy as np
+import cv2
+from sklearn.cluster import KMeans
+
+def compute_way_kmeans_lab(image, k=6, b_percentile=50, l_percentile=30):
     image = np.array(image.convert("RGB"))
     lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
-    pixels = lab_image.reshape(-1, 3)
+    
+    L, A, B = lab_image[:, :, 0], lab_image[:, :, 1], lab_image[:, :, 2]
 
-    kmeans = KMeans(n_clusters=k, n_init=10, random_state=42)
-    kmeans.fit(pixels)
+    # Compute thresholds for masking
+    B_thresh = np.percentile(B, b_percentile)  # Yellow threshold
+    L_thresh = np.percentile(L, l_percentile)  # Brightness threshold
+
+    # Select only yellowish and bright pixels
+    yellow_mask = (B > B_thresh) & (L > L_thresh)
+    masked_pixels = lab_image[yellow_mask]
+
+    if masked_pixels.shape[0] == 0:
+        return 0  # Return 0 if no valid pixels are found to avoid errors
+
+    # Apply K-means on masked pixels
+    kmeans = KMeans(n_clusters=min(k, len(masked_pixels)), n_init=10, random_state=42)
+    kmeans.fit(masked_pixels)
     cluster_centers = kmeans.cluster_centers_
     cluster_labels = kmeans.labels_
 
+    # Convert B values to WAY formula
     normalized_B_values = ((cluster_centers[:, 2] - 128) / 127.0) * 50 + 20
     cluster_sizes = np.bincount(cluster_labels, minlength=k)
 
     total_pixels = np.sum(cluster_sizes)
     cluster_proportions = cluster_sizes / total_pixels
     WAY = np.dot(cluster_proportions, normalized_B_values)
+
     return WAY
+
 
 def classify_jaundice(WAY):
     if 20 <= WAY <= 25:
