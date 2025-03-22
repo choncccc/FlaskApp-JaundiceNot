@@ -16,7 +16,7 @@ def extract_yellow_histogram_features(image, bins=10):
     
     L, A, B = lab_image[:, :, 0], lab_image[:, :, 1], lab_image[:, :, 2]
 
-    yellow_mask = B > np.percentile(B, 75)
+    yellow_mask = B > np.percentile(B, 45)
     L_valid, A_valid, B_valid = L[yellow_mask], A[yellow_mask], B[yellow_mask]
 
     if L_valid.size == 0:
